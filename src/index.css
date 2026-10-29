@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Tema-tokens. Mørkt tema er standard. Lyst tema aktiveres ved å sette
+ * class="light" på <html> — da overstyrer :root.light alle variablene,
+ * og Tailwind-klassene (app-…) følger automatisk.
+ */
+:root {
+  --app-bg: 12 24 38;            /* viking-blue-deep #0c1826 */
+  --app-surface: 19 36 54;       /* viking-blue #132436 */
+  --app-surface-deep: 12 24 38;  /* samme som bg (inputs) */
+  --app-surface-2: 29 58 84;     /* viking-blue-light #1d3a54 */
+  --app-text: 255 255 255;
+  --app-border: 255 255 255;     /* brukes med /10, /15, /30 */
+  --app-hover: 255 255 255;      /* brukes med /5, /10 */
+  --app-gold: 219 192 103;       /* viking-gold #DBC067 */
+}
+
+:root.light {
+  --app-bg: 241 245 249;          /* slate-100 */
+  --app-surface: 255 255 255;     /* hvit */
+  --app-surface-deep: 241 245 249; /* slate-100 (inputs) */
+  --app-surface-2: 226 232 240;   /* slate-200 */
+  --app-text: 15 23 42;           /* slate-900 */
+  --app-border: 15 23 42;         /* brukes med /10, /15, /30 */
+  --app-hover: 15 23 42;          /* brukes med /5, /10 */
+  --app-gold: 176 141 46;        /* mørkere gull for kontrast på lys bakgrunn */
+}
+
+body {
+  @apply bg-app-bg text-app-text font-body;
+}
