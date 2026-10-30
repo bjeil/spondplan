@@ -17,7 +17,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 const SPOND_API_BASE = 'https://api.spond.com/core/v1';
 
 interface SpondLoginResponse {
-  accessToken: string;
+  accessToken?: { token: string; expiration?: string };
 }
 
 async function spondFetch<T>(path: string, token: string, init?: RequestInit): Promise<T> {
@@ -36,12 +36,13 @@ async function spondFetch<T>(path: string, token: string, init?: RequestInit): P
 }
 
 async function spondLogin(username: string, password: string): Promise<string> {
-  const body = await spondFetch<SpondLoginResponse>('/auth/login', '', {
+  const body = await spondFetch<SpondLoginResponse>('/auth2/login', '', {
     method: 'POST',
-    body: JSON.stringify({ user: username, password })
+    body: JSON.stringify({ email: username, password })
   });
-  if (!body.accessToken) throw new Error('Innlogging ga ikke accessToken');
-  return body.accessToken;
+  const token = body.accessToken?.token;
+  if (!token) throw new Error('Innlogging ga ikke accessToken.token');
+  return token;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -70,22 +71,29 @@ serve(async (req: Request) => {
     const token = await spondLogin(username, password);
 
     if (action === 'verify') {
-      const groups = await spondFetch<unknown[]>('/groups', token);
+      const groups = await spondFetch<unknown[]>('/groups/', token);
       return json({ ok: true, groups: Array.isArray(groups) ? groups.length : 0 });
     }
 
     if (action === 'listEvents') {
       if (!groupId || !from || !to) return json({ error: 'groupId, from og to kreves' }, 400);
-      const events = await spondFetch<unknown[]>(
-        `/sponds?groupId=${encodeURIComponent(groupId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-        token
-      );
+      const params = new URLSearchParams({
+        groupId,
+        minStartTimestamp: from,
+        maxStartTimestamp: to,
+        max: '100',
+        scheduled: 'true'
+      });
+      const events = await spondFetch<unknown[]>(`/sponds/?${params.toString()}`, token);
       return json({ events });
     }
 
     if (action === 'attendance') {
       if (!eventId) return json({ error: 'eventId kreves' }, 400);
-      const detail = await spondFetch<Record<string, unknown>>(`/sponds/${encodeURIComponent(eventId)}`, token);
+      const detail = await spondFetch<Record<string, unknown>>(
+        `/sponds/${encodeURIComponent(eventId)}?includeComments=true`,
+        token
+      );
       return json({ event: detail });
     }
 

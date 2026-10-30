@@ -19,7 +19,7 @@ describe('DirectSpondAdapter (Fase 0)', () => {
   it('logger inn og henter attendance med riktig mapping av svarstatus', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock
-      .mockResolvedValueOnce(jsonResponse({ accessToken: 'tok123' }))
+      .mockResolvedValueOnce(jsonResponse({ accessToken: { token: 'tok123', expiration: '2026-12-01' } }))
       .mockResolvedValueOnce(
         jsonResponse({
           id: 'ev1',
@@ -37,7 +37,7 @@ describe('DirectSpondAdapter (Fase 0)', () => {
     const attendance = await adapter.getAttendance('ev1');
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][0]).toContain('/auth/login');
+    expect(fetchMock.mock.calls[0][0]).toContain('/auth2/login');
     expect(fetchMock.mock.calls[1][0]).toContain('/sponds/ev1');
     expect(fetchMock.mock.calls[1][1]?.headers).toMatchObject({ Authorization: 'Bearer tok123' });
 
@@ -59,7 +59,7 @@ describe('DirectSpondAdapter (Fase 0)', () => {
   it('gjenbruker token ved flere kall', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock
-      .mockResolvedValueOnce(jsonResponse({ accessToken: 'tok123' }))
+      .mockResolvedValueOnce(jsonResponse({ accessToken: { token: 'tok123' } }))
       .mockResolvedValueOnce(jsonResponse([]))
       .mockResolvedValueOnce(jsonResponse([]));
 
@@ -67,7 +67,7 @@ describe('DirectSpondAdapter (Fase 0)', () => {
     await adapter.listEvents('g1', new Date('2026-11-01'), new Date('2026-11-30'));
     await adapter.listEvents('g1', new Date('2026-12-01'), new Date('2026-12-31'));
 
-    const loginCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth/login'));
+    const loginCalls = fetchMock.mock.calls.filter(([url]) => String(url).includes('/auth2/login'));
     expect(loginCalls).toHaveLength(1);
   });
 });
