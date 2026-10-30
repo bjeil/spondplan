@@ -3,8 +3,7 @@ import type { SpondAdapter, SpondAttendanceEntry, SpondEvent, SpondEventAttendan
 const SPOND_API_BASE = 'https://api.spond.com/core/v1';
 
 interface SpondLoginResponse {
-  accessToken: string;
-  tokenType?: string;
+  accessToken?: { token: string; expiration?: string };
 }
 
 interface SpondEventRaw {
@@ -75,23 +74,27 @@ export class DirectSpondAdapter implements SpondAdapter {
 
   private async login(): Promise<string> {
     if (this.token) return this.token;
-    const body = await spondFetch<SpondLoginResponse>('/auth/login', '', {
+    const body = await spondFetch<SpondLoginResponse>('/auth2/login', '', {
       method: 'POST',
-      body: JSON.stringify({ user: this.username, password: this.password })
+      body: JSON.stringify({ email: this.username, password: this.password })
     });
-    if (!body.accessToken) throw new SpondApiError('Innlogging ga ikke accessToken', 401);
-    this.token = body.accessToken;
+    const token = body.accessToken?.token;
+    if (!token) throw new SpondApiError('Innlogging ga ikke accessToken.token', 401);
+    this.token = token;
     return this.token;
   }
 
   async listEvents(groupId: string, from: Date, to: Date): Promise<SpondEvent[]> {
     const token = await this.login();
-    const fromIso = from.toISOString();
-    const toIso = to.toISOString();
-    const raw = await spondFetch<SpondEventRaw[]>(
-      `/sponds?groupId=${encodeURIComponent(groupId)}&from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`,
-      token
-    );
+    const fmt = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, '.000Z');
+    const params = new URLSearchParams({
+      groupId,
+      minStartTimestamp: fmt(from),
+      maxStartTimestamp: fmt(to),
+      max: '100',
+      scheduled: 'true'
+    });
+    const raw = await spondFetch<SpondEventRaw[]>(`/sponds/?${params.toString()}`, token);
     return raw.map((e) => ({
       id: e.id,
       heading: e.heading ?? '',
@@ -103,7 +106,10 @@ export class DirectSpondAdapter implements SpondAdapter {
 
   async getAttendance(eventId: string): Promise<SpondEventAttendance> {
     const token = await this.login();
-    const detail = await spondFetch<SpondEventDetailRaw>(`/sponds/${encodeURIComponent(eventId)}`, token);
+    const detail = await spondFetch<SpondEventDetailRaw>(
+      `/sponds/${encodeURIComponent(eventId)}?includeComments=true`,
+      token
+    );
     const members = new Map((detail.members ?? []).map((m) => [m.id, fullName(m)]));
     const responses = detail.responses ?? {};
     const entries: SpondAttendanceEntry[] = [
