@@ -30,7 +30,19 @@ async function spondFetch<T>(path: string, token: string, init?: RequestInit): P
     }
   });
   if (!res.ok) {
-    throw new Error(`Spond API ${path} svarte ${res.status}`);
+    // Vis kun trygge diagnosefelter fra Spond sitt svar (ikke 2FA-token/telefonnummer).
+    let detail = '';
+    try {
+      const body = (await res.json()) as Record<string, unknown>;
+      const safe = ['error', 'errorKey', 'errorCode', 'message']
+        .filter((k) => k in body)
+        .map((k) => `${k}=${JSON.stringify(body[k])}`)
+        .join(' ');
+      detail = safe ? ` – ${safe}` : '';
+    } catch {
+      detail = ` – ${await res.text().catch(() => '')}`.slice(0, 200);
+    }
+    throw new Error(`Spond API ${path} svarte ${res.status}${detail}`);
   }
   return (await res.json()) as T;
 }
