@@ -17,7 +17,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 const SPOND_API_BASE = 'https://api.spond.com/core/v1';
 
 interface SpondLoginResponse {
-  accessToken: string;
+  accessToken?: { token: string; expiration?: string };
 }
 
 async function spondFetch<T>(path: string, token: string, init?: RequestInit): Promise<T> {
@@ -30,18 +30,45 @@ async function spondFetch<T>(path: string, token: string, init?: RequestInit): P
     }
   });
   if (!res.ok) {
-    throw new Error(`Spond API ${path} svarte ${res.status}`);
+    // Vis kun trygge diagnosefelter fra Spond sitt svar (ikke 2FA-token/telefonnummer).
+    let detail = '';
+    try {
+      const body = (await res.json()) as Record<string, unknown>;
+      const safe = ['error', 'errorKey', 'errorCode', 'message']
+        .filter((k) => k in body)
+        .map((k) => `${k}=${JSON.stringify(body[k])}`)
+        .join(' ');
+      detail = safe ? ` – ${safe}` : '';
+    } catch {
+      detail = ` – ${await res.text().catch(() => '')}`.slice(0, 200);
+    }
+    throw new Error(`Spond API ${path} svarte ${res.status}${detail}`);
   }
   return (await res.json()) as T;
 }
 
 async function spondLogin(username: string, password: string): Promise<string> {
-  const body = await spondFetch<SpondLoginResponse>('/auth/login', '', {
+  const res = await fetch(`${SPOND_API_BASE}/auth2/login`, {
     method: 'POST',
-    body: JSON.stringify({ user: username, password })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: username.trim().toLowerCase(), password })
   });
-  if (!body.accessToken) throw new Error('Innlogging ga ikke accessToken');
-  return body.accessToken;
+  const body = (await res.json().catch(() => ({}))) as SpondLoginResponse & {
+    token?: string;
+    phoneNumber?: string;
+    error?: string;
+    errorKey?: string;
+    message?: string;
+  };
+  const token = body.accessToken?.token;
+  if (token) return token;
+  // 2FA-utfordring: Spond svarer med { token, phoneNumber } og engangskode på SMS –
+  // ikke støttet av dette API-et (TOTP). Ikke lek verdiene.
+  if (body.token && body.phoneNumber) {
+    throw new Error('2FA er aktivert på kontoen (TOTP støttes ikke av uoffisielt API)');
+  }
+  const safe = ['error', 'errorKey', 'message'].filter((k) => k in body).map((k) => `${k}=${JSON.stringify(body[k as keyof typeof body])}`).join(' ');
+  throw new Error(`Innlogging avvist (HTTP ${res.status})${safe ? ` – ${safe}` : ''}`);
 }
 
 function json(body: unknown, status = 200): Response {
@@ -70,22 +97,29 @@ serve(async (req: Request) => {
     const token = await spondLogin(username, password);
 
     if (action === 'verify') {
-      const groups = await spondFetch<unknown[]>('/groups', token);
+      const groups = await spondFetch<unknown[]>('/groups/', token);
       return json({ ok: true, groups: Array.isArray(groups) ? groups.length : 0 });
     }
 
     if (action === 'listEvents') {
       if (!groupId || !from || !to) return json({ error: 'groupId, from og to kreves' }, 400);
-      const events = await spondFetch<unknown[]>(
-        `/sponds?groupId=${encodeURIComponent(groupId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-        token
-      );
+      const params = new URLSearchParams({
+        groupId,
+        minStartTimestamp: from,
+        maxStartTimestamp: to,
+        max: '100',
+        scheduled: 'true'
+      });
+      const events = await spondFetch<unknown[]>(`/sponds/?${params.toString()}`, token);
       return json({ events });
     }
 
     if (action === 'attendance') {
       if (!eventId) return json({ error: 'eventId kreves' }, 400);
-      const detail = await spondFetch<Record<string, unknown>>(`/sponds/${encodeURIComponent(eventId)}`, token);
+      const detail = await spondFetch<Record<string, unknown>>(
+        `/sponds/${encodeURIComponent(eventId)}?includeComments=true`,
+        token
+      );
       return json({ event: detail });
     }
 
