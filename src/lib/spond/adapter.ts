@@ -1,4 +1,4 @@
-import type { SpondAdapter, SpondAttendanceEntry, SpondEvent, SpondEventAttendance } from './types';
+import type { SpondAdapter, SpondAttendanceEntry, SpondEvent, SpondEventAttendance, SpondGroup, SpondGroupMember } from './types';
 
 const SPOND_API_BASE = 'https://api.spond.com/core/v1';
 
@@ -82,6 +82,19 @@ export class DirectSpondAdapter implements SpondAdapter {
     if (!token) throw new SpondApiError('Innlogging ga ikke accessToken.token', 401);
     this.token = token;
     return this.token;
+  }
+
+  async listGroups(): Promise<SpondGroup[]> {
+    const token = await this.login();
+    const raw = await spondFetch<Array<Record<string, unknown>>>(`/groups/`, token);
+    return (raw ?? []).map((g) => ({
+      id: String(g.id),
+      name: String(g.name ?? ''),
+      members: ((g.members as Array<Record<string, unknown>> | undefined) ?? []).map((m) => ({
+        id: String(m.id),
+        name: [m.firstName, m.lastName].filter(Boolean).join(' ') || String(m.id)
+      }))
+    }));
   }
 
   async listEvents(groupId: string, from: Date, to: Date): Promise<SpondEvent[]> {

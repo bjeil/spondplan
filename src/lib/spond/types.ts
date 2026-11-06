@@ -20,7 +20,19 @@ export interface SpondEventAttendance {
   entries: SpondAttendanceEntry[];
 }
 
+export interface SpondGroupMember {
+  id: string;
+  name: string;
+}
+
+export interface SpondGroup {
+  id: string;
+  name: string;
+  members: SpondGroupMember[];
+}
+
 export interface SpondAdapter {
+  listGroups(): Promise<SpondGroup[]>;
   listEvents(groupId: string, from: Date, to: Date): Promise<SpondEvent[]>;
   getAttendance(eventId: string): Promise<SpondEventAttendance>;
 }

@@ -101,6 +101,20 @@ serve(async (req: Request) => {
       return json({ ok: true, groups: Array.isArray(groups) ? groups.length : 0 });
     }
 
+    if (action === 'members') {
+      const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
+      const mapped = (groups ?? []).map((g) => ({
+        id: String(g.id),
+        name: String(g.name ?? ''),
+        members: ((g.members as Array<Record<string, unknown>> | undefined) ?? []).map((m) => ({
+          id: String(m.id),
+          name: [m.firstName, m.lastName].filter(Boolean).join(' ') || String(m.id)
+        }))
+      }));
+      const filtered = groupId ? mapped.filter((g) => g.id === groupId) : mapped;
+      return json({ groups: filtered });
+    }
+
     if (action === 'listEvents') {
       if (!groupId || !from || !to) return json({ error: 'groupId, from og to kreves' }, 400);
       const params = new URLSearchParams({

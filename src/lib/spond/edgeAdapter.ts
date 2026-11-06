@@ -1,5 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-import type { SpondAdapter, SpondEvent, SpondEventAttendance } from './types';
+import { supabase } from '../supabase';
+import type { SpondAdapter, SpondEvent, SpondEventAttendance, SpondGroup } from './types';
 
 /**
  * Adapter som går via Supabase Edge Function (ikke direkte til Spond).
@@ -7,13 +7,16 @@ import type { SpondAdapter, SpondEvent, SpondEventAttendance } from './types';
  * kun i Edge Function, og CORS-problemet unngås.
  */
 export class EdgeFunctionSpondAdapter implements SpondAdapter {
-  constructor(
-    private readonly supabaseUrl: string,
-    private readonly supabaseAnonKey: string
-  ) {}
-
   private client() {
-    return createClient(this.supabaseUrl, this.supabaseAnonKey);
+    return supabase;
+  }
+
+  async listGroups(): Promise<SpondGroup[]> {
+    const { data, error } = await this.client().functions.invoke('spond', {
+      body: { action: 'members' }
+    });
+    if (error) throw new Error(`spond/members feilet: ${error.message}`);
+    return (data?.groups ?? []) as SpondGroup[];
   }
 
   async listEvents(groupId: string, from: Date, to: Date): Promise<SpondEvent[]> {
@@ -32,3 +35,6 @@ export class EdgeFunctionSpondAdapter implements SpondAdapter {
     return data as SpondEventAttendance;
   }
 }
+
+/** Ferdig konfigurert adapter mot prosjektets Edge Function. */
+export const edgeSpondAdapter: SpondAdapter = new EdgeFunctionSpondAdapter();
