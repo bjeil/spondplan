@@ -48,13 +48,27 @@ async function spondFetch<T>(path: string, token: string, init?: RequestInit): P
 }
 
 async function spondLogin(username: string, password: string): Promise<string> {
-  const body = await spondFetch<SpondLoginResponse>('/auth2/login', '', {
+  const res = await fetch(`${SPOND_API_BASE}/auth2/login`, {
     method: 'POST',
-    body: JSON.stringify({ email: username, password })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: username.trim().toLowerCase(), password })
   });
+  const body = (await res.json().catch(() => ({}))) as SpondLoginResponse & {
+    token?: string;
+    phoneNumber?: string;
+    error?: string;
+    errorKey?: string;
+    message?: string;
+  };
   const token = body.accessToken?.token;
-  if (!token) throw new Error('Innlogging ga ikke accessToken.token');
-  return token;
+  if (token) return token;
+  // 2FA-utfordring: Spond svarer med { token, phoneNumber } og engangskode på SMS –
+  // ikke støttet av dette API-et (TOTP). Ikke lek verdiene.
+  if (body.token && body.phoneNumber) {
+    throw new Error('2FA er aktivert på kontoen (TOTP støttes ikke av uoffisielt API)');
+  }
+  const safe = ['error', 'errorKey', 'message'].filter((k) => k in body).map((k) => `${k}=${JSON.stringify(body[k as keyof typeof body])}`).join(' ');
+  throw new Error(`Innlogging avvist (HTTP ${res.status})${safe ? ` – ${safe}` : ''}`);
 }
 
 function json(body: unknown, status = 200): Response {
