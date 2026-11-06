@@ -26,9 +26,12 @@
    (2FA, API-endringer, blokkerte kall) → prosjektet skrinlegges.
    Manuell import er ikke et fallback-alternativ.
 
-## Videre (Fase 1)
+## Fase 1 – datamodell og auth
 
-- `schema.sql` + migrasjoner for tabellene i datamodellen (players, topics,
-  coaching_points, session_plans, drills, sessions, session_players,
-  player_groups, attendance_history) med RLS – samme mønster som Belast.
-- Auth med brukernavn/passord (intern e-post-mønster som Belast).
+1. Kjør `schema.sql` i Supabase Dashboard → SQL Editor (tabellene i
+   datamodellen: players, topics, coaching_points, session_plans, drills,
+   sessions, session_players, player_groups, attendance_history — alle med RLS,
+   samme mønster som Belast).
+2. Opprett brukeren i Dashboard → Auth (brukernavnet i appen oversettes til
+   `<brukernavn>@spondplan.app`; "spl" → `spl@spondplan.app`).
+3. App-klienten har Supabase URL/anon-key hardkodet i `src/lib/supabase.ts` (POC).
