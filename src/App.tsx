@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isLoggedIn, login, logout, onAuthChange } from './lib/auth';
+import Players from './features/Players';
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
@@ -60,17 +61,18 @@ export default function App() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-2 p-6 text-center">
-      <h1 className="font-display text-4xl text-app-gold">Spondplan</h1>
-      <p className="max-w-md text-app-text/70">
-        Innlogget. Fase 1 pågår: øktplaner, spiller-database og Spond-oppmøte kommer i neste PR-er.
-      </p>
-      <button
-        onClick={() => logout()}
-        className="mt-4 rounded bg-app-surface-2 px-4 py-2 text-app-text"
-      >
-        Logg ut
-      </button>
+    <main className="flex min-h-screen flex-col items-center gap-4 p-6">
+      <header className="flex w-full max-w-md items-center justify-between">
+        <h1 className="font-display text-2xl text-app-gold">Spondplan</h1>
+        <button
+          onClick={() => logout()}
+          className="rounded bg-app-surface-2 px-3 py-1 text-sm text-app-text"
+        >
+          Logg ut
+        </button>
+      </header>
+      <h2 className="self-start text-lg font-semibold text-app-text">Spillere</h2>
+      <Players />
     </main>
   );
 }
