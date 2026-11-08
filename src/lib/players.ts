@@ -9,7 +9,8 @@ export function validateLevel(level: number): level is 1 | 2 | 3 | 4 | 5 {
 }
 
 export async function listPlayers(): Promise<Player[]> {
-  const players = await db.players.orderBy('name').toArray();
+  // NB: sorter i minnet — «name» er ikke en Dexie-indeks, orderBy('name') feiler.
+  const players = await db.players.toArray();
   return players.filter((p) => p.active).sort((a, b) => a.name.localeCompare(b.name, 'nb'));
 }
 
