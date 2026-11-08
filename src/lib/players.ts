@@ -8,10 +8,12 @@ export function validateLevel(level: number): level is 1 | 2 | 3 | 4 | 5 {
   return Number.isInteger(level) && level >= 1 && level <= 5;
 }
 
-export async function listPlayers(): Promise<Player[]> {
+export async function listPlayers(groupId?: string): Promise<Player[]> {
   // NB: sorter i minnet — «name» er ikke en Dexie-indeks, orderBy('name') feiler.
-  const players = await db.players.toArray();
-  return players.filter((p) => p.active).sort((a, b) => a.name.localeCompare(b.name, 'nb'));
+  let players = await db.players.toArray();
+  players = players.filter((p) => p.active);
+  if (groupId) players = players.filter((p) => p.spondGroupId === groupId);
+  return players.sort((a, b) => a.name.localeCompare(b.name, 'nb'));
 }
 
 export async function upsertPlayer(player: Player): Promise<void> {
@@ -25,6 +27,7 @@ export async function upsertPlayer(player: Player): Promise<void> {
       user_id: userId,
       name: player.name,
       spond_member_id: player.spondMemberId,
+      spond_group_id: player.spondGroupId,
       level: player.level,
       active: player.active,
       updated_at: updatedAt
@@ -60,14 +63,15 @@ export function mergeSpondMembers(existing: Player[], group: SpondGroup, now = n
   for (const m of group.members) {
     const found = byMemberId.get(m.id);
     if (found) {
-      if (found.name !== m.name) {
-        updatedNames.push({ ...found, name: m.name, updatedAt: now });
+      if (found.name !== m.name || found.spondGroupId !== group.id) {
+        updatedNames.push({ ...found, name: m.name, spondGroupId: group.id, updatedAt: now });
       }
     } else {
       added.push({
         id: crypto.randomUUID(),
         name: m.name,
         spondMemberId: m.id,
+        spondGroupId: group.id,
         level: 3,
         active: true,
         updatedAt: now

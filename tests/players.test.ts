@@ -5,8 +5,8 @@ import type { SpondGroup } from '../src/lib/spond/types';
 
 const now = '2026-10-29T12:00:00.000Z';
 
-function player(id: string, memberId: string | null, name: string, level: Player['level'] = 3): Player {
-  return { id, name, spondMemberId: memberId, level, active: true, updatedAt: now };
+function player(id: string, memberId: string | null, name: string, level: Player['level'] = 3, spondGroupId: string | null = 'g1'): Player {
+  return { id, name, spondMemberId: memberId, spondGroupId, level, active: true, updatedAt: now };
 }
 
 describe('validateLevel', () => {
@@ -34,9 +34,9 @@ describe('mergeSpondMembers', () => {
     const result = mergeSpondMembers(existing, group, now);
 
     expect(result.added).toHaveLength(1);
-    expect(result.added[0]).toMatchObject({ spondMemberId: 'm2', name: 'Kari Hansen', level: 3 });
+    expect(result.added[0]).toMatchObject({ spondMemberId: 'm2', name: 'Kari Hansen', level: 3, spondGroupId: 'g1' });
     expect(result.updatedNames).toHaveLength(1);
-    expect(result.updatedNames[0]).toMatchObject({ id: 'p3', name: 'Per Ny', level: 2 });
+    expect(result.updatedNames[0]).toMatchObject({ id: 'p3', name: 'Per Ny', level: 2, spondGroupId: 'g1' });
   });
 
   it('endrer ikke nivå på eksisterende spillere selv om navn er likt', () => {

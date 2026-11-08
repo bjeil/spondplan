@@ -7,6 +7,7 @@ describe('datamodell-typer', () => {
       id: 'p1',
       name: 'Ola',
       spondMemberId: 'm1',
+      spondGroupId: 'g1',
       level: 3,
       active: true,
       updatedAt: new Date().toISOString()

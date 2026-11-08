@@ -6,6 +6,8 @@ export interface Player {
   id: string;
   name: string;
   spondMemberId: string | null;
+  /** Spond-gruppen (laget) spilleren ble synkronisert fra. */
+  spondGroupId: string | null;
   level: 1 | 2 | 3 | 4 | 5;
   active: boolean;
   updatedAt: string;
