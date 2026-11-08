@@ -32,7 +32,10 @@ class SpondplanDB extends Dexie {
   constructor() {
     super('spondplan');
     this.version(1).stores({
-      players: 'id, spondMemberId, active',
+      players: 'id, spondMemberId, active'
+    });
+    this.version(2).stores({
+      players: 'id, spondMemberId, spondGroupId, active',
       topics: 'id, key',
       coachingPoints: 'id',
       sessionPlans: 'id, updatedAt',

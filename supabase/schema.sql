@@ -11,11 +11,14 @@ create table if not exists public.players (
   user_id         uuid not null references auth.users(id) on delete cascade,
   name            text not null,
   spond_member_id text,
+  spond_group_id  text,                     -- laget spilleren er synkronisert fra
   level           int not null check (level between 1 and 5),
   active          boolean not null default true,
   updated_at      timestamptz not null default now()
 );
 create index if not exists players_user_idx on public.players (user_id);
+-- For eksisterende installasjoner (POC kjørte schema før kolonnen fantes):
+alter table public.players add column if not exists spond_group_id text;
 
 -- 2. Tema/læringsmål fra Landslagsskolen (A1–A3, F1–F3 osv.)
 create table if not exists public.topics (
