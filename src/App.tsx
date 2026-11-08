@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { isLoggedIn, login, logout, onAuthChange } from './lib/auth';
 import Players from './features/Players';
+import Plans from './features/Plans';
+
+type View = 'players' | 'plans';
 
 export default function App() {
+  const [view, setView] = useState<View>('players');
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -71,8 +75,25 @@ export default function App() {
           Logg ut
         </button>
       </header>
-      <h2 className="self-start text-lg font-semibold text-app-text">Spillere</h2>
-      <Players />
+      <nav className="flex w-full max-w-md gap-2">
+        {(
+          [
+            ['players', 'Spillere'],
+            ['plans', 'Øktplaner']
+          ] as Array<[View, string]>
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`flex-1 rounded px-3 py-2 text-sm font-semibold ${
+              view === v ? 'bg-app-gold text-viking-blue-deep' : 'bg-app-surface-2 text-app-text'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      {view === 'players' ? <Players /> : <Plans />}
     </main>
   );
 }
