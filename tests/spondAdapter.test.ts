@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { DirectSpondAdapter, SpondApiError } from '../src/lib/spond/adapter';
+import { DirectSpondAdapter, SpondApiError, filterPlayers } from '../src/lib/spond/adapter';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -54,6 +54,39 @@ describe('DirectSpondAdapter (Fase 0)', () => {
     const adapter = new DirectSpondAdapter('bruker', 'feil-pass');
     await expect(adapter.getAttendance('ev1')).rejects.toBeInstanceOf(SpondApiError);
     await expect(adapter.getAttendance('ev1')).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('listGroups filtrerer bort foresatte (guardians) fra medlemslisten', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ accessToken: { token: 'tok' } }))
+      .mockResolvedValueOnce(
+        jsonResponse([
+          {
+            id: 'g1',
+            name: 'Gutt 2013',
+            members: [
+              { id: 'm1', firstName: 'Ola', lastName: 'Nordmann', guardians: [{ id: 'g-a', firstName: 'Mor', lastName: 'Nordmann' }] },
+              { id: 'm2', firstName: 'Kari', lastName: 'Hansen', guardians: [{ id: 'g-b', firstName: 'Far', lastName: 'Hansen' }] },
+              { id: 'g-a', firstName: 'Mor', lastName: 'Nordmann' }, // forelder med egen member-oppføring
+              { id: 'g-b', firstName: 'Far', lastName: 'Hansen' }
+            ]
+          }
+        ])
+      );
+
+    const adapter = new DirectSpondAdapter('bruker', 'pass');
+    const groups = await adapter.listGroups();
+    expect(groups).toHaveLength(1);
+    expect(groups[0].members).toEqual([
+      { id: 'm1', name: 'Ola Nordmann' },
+      { id: 'm2', name: 'Kari Hansen' }
+    ]);
+  });
+
+  it('filterPlayers håndterer tom/uten guardians', () => {
+    expect(filterPlayers([])).toEqual([]);
+    expect(filterPlayers([{ id: 'm1', firstName: 'Per' }])).toEqual([{ id: 'm1', name: 'Per' }]);
   });
 
   it('gjenbruker token ved flere kall', async () => {
