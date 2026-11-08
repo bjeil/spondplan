@@ -113,14 +113,23 @@ serve(async (req: Request) => {
 
     if (action === 'members') {
       const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
-      const mapped = (groups ?? []).map((g) => ({
-        id: String(g.id),
-        name: String(g.name ?? ''),
-        members: ((g.members as Array<Record<string, unknown>> | undefined) ?? []).map((m) => ({
-          id: String(m.id),
-          name: [m.firstName, m.lastName].filter(Boolean).join(' ') || String(m.id)
-        }))
-      }));
+      const mapped = (groups ?? []).map((g) => {
+        const members = (g.members as Array<Record<string, unknown>> | undefined) ?? [];
+        // Filtrer bort foresatte: id-er i nestede guardians-lister er ikke spillere.
+        const guardianIds = new Set(
+          members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((x) => String(x.id)))
+        );
+        return {
+          id: String(g.id),
+          name: String(g.name ?? ''),
+          members: members
+            .filter((m) => !guardianIds.has(String(m.id)))
+            .map((m) => ({
+              id: String(m.id),
+              name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || String(m.id)
+            }))
+        };
+      });
       const filtered = groupId ? mapped.filter((g) => g.id === groupId) : mapped;
       return json({ groups: filtered });
     }

@@ -1,5 +1,6 @@
 import type { SpondAdapter, SpondAttendanceEntry, SpondEvent, SpondEventAttendance, SpondGroup, SpondGroupMember } from './types';
 
+
 const SPOND_API_BASE = 'https://api.spond.com/core/v1';
 
 interface SpondLoginResponse {
@@ -33,6 +34,23 @@ interface SpondEventDetailRaw extends SpondEventRaw {
 function fullName(m: SpondMemberRaw): string {
   if (m.name && m.name.trim()) return m.name.trim();
   return [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || m.id;
+}
+
+/**
+ * Filtrer bort foresatte (guardians) fra en gruppes medlemsliste: hver childs
+ * oppslag har en nestet `guardians`-liste — alle id-er der er foresatte og skal
+ * ikke med som spillere. Returnerer kun {id, name} for faktiske spillere.
+ */
+export function filterPlayers(members: Array<Record<string, unknown>>): SpondGroupMember[] {
+  const guardianIds = new Set(
+    members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((g) => String(g.id)))
+  );
+  return members
+    .filter((m) => !guardianIds.has(String(m.id)))
+    .map((m) => ({
+      id: String(m.id),
+      name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || String(m.id)
+    }));
 }
 
 export class SpondApiError extends Error {
@@ -90,10 +108,7 @@ export class DirectSpondAdapter implements SpondAdapter {
     return (raw ?? []).map((g) => ({
       id: String(g.id),
       name: String(g.name ?? ''),
-      members: ((g.members as Array<Record<string, unknown>> | undefined) ?? []).map((m) => ({
-        id: String(m.id),
-        name: [m.firstName, m.lastName].filter(Boolean).join(' ') || String(m.id)
-      }))
+      members: filterPlayers((g.members as Array<Record<string, unknown>> | undefined) ?? [])
     }));
   }
 
