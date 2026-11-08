@@ -71,14 +71,24 @@ async function spondLogin(username: string, password: string): Promise<string> {
   throw new Error(`Innlogging avvist (HTTP ${res.status})${safe ? ` – ${safe}` : ''}`);
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
+};
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json', ...corsHeaders }
   });
 }
 
 serve(async (req: Request) => {
+  // CORS preflight – PWA-en kjører fra GitHub Pages, så dette er nødvendig.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
   try {
     const username = Deno.env.get('SPOND_USERNAME');
     const password = Deno.env.get('SPOND_PASSWORD');
