@@ -65,11 +65,13 @@ describe('DirectSpondAdapter (Fase 0)', () => {
           {
             id: 'g1',
             name: 'Gutt 2013',
+            admins: [{ id: 'a1' }],
             members: [
               { id: 'm1', firstName: 'Ola', lastName: 'Nordmann', guardians: [{ id: 'g-a', firstName: 'Mor', lastName: 'Nordmann' }] },
               { id: 'm2', firstName: 'Kari', lastName: 'Hansen', guardians: [{ id: 'g-b', firstName: 'Far', lastName: 'Hansen' }] },
               { id: 'g-a', firstName: 'Mor', lastName: 'Nordmann' }, // forelder med egen member-oppføring
-              { id: 'g-b', firstName: 'Far', lastName: 'Hansen' }
+              { id: 'g-b', firstName: 'Far', lastName: 'Hansen' },
+              { id: 'a1', firstName: 'Trener', lastName: 'Treneren' } // admin med egen member-oppføring
             ]
           }
         ])
@@ -87,6 +89,16 @@ describe('DirectSpondAdapter (Fase 0)', () => {
   it('filterPlayers håndterer tom/uten guardians', () => {
     expect(filterPlayers([])).toEqual([]);
     expect(filterPlayers([{ id: 'm1', firstName: 'Per' }])).toEqual([{ id: 'm1', name: 'Per' }]);
+  });
+
+  it('filterPlayers ekskluderer administratorer (admins-liste og admin-role)', () => {
+    const members = [
+      { id: 'm1', firstName: 'Ola', lastName: 'Nordmann' },
+      { id: 'a1', firstName: 'Trener', lastName: 'Treneren' },
+      { id: 'a2', firstName: 'Hjelpetrener', role: 'ADMIN' }
+    ];
+    const result = filterPlayers(members, [{ id: 'a1' }]);
+    expect(result).toEqual([{ id: 'm1', name: 'Ola Nordmann' }]);
   });
 
   it('gjenbruker token ved flere kall', async () => {

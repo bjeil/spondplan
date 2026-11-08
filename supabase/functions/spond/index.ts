@@ -115,15 +115,18 @@ serve(async (req: Request) => {
       const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
       const mapped = (groups ?? []).map((g) => {
         const members = (g.members as Array<Record<string, unknown>> | undefined) ?? [];
-        // Filtrer bort foresatte: id-er i nestede guardians-lister er ikke spillere.
+        // Filtrer bort foresatte (nestede guardians-lister) og administratorer (egen admins-liste / admin-role).
         const guardianIds = new Set(
           members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((x) => String(x.id)))
         );
+        const admins = (g.admins as Array<Record<string, unknown> | string> | undefined) ?? [];
+        const adminIds = new Set(admins.map((a) => String(typeof a === 'string' ? a : a.id)));
+        const isAdminRole = (m: Record<string, unknown>) => String(m.role ?? m.memberType ?? '').toUpperCase().includes('ADMIN');
         return {
           id: String(g.id),
           name: String(g.name ?? ''),
           members: members
-            .filter((m) => !guardianIds.has(String(m.id)))
+            .filter((m) => !guardianIds.has(String(m.id)) && !adminIds.has(String(m.id)) && !isAdminRole(m))
             .map((m) => ({
               id: String(m.id),
               name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || String(m.id)

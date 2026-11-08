@@ -37,16 +37,28 @@ function fullName(m: SpondMemberRaw): string {
 }
 
 /**
- * Filtrer bort foresatte (guardians) fra en gruppes medlemsliste: hver childs
- * oppslag har en nestet `guardians`-liste — alle id-er der er foresatte og skal
- * ikke med som spillere. Returnerer kun {id, name} for faktiske spillere.
+ * Filtrer bort foresatte (guardians) og administratorer fra en gruppes medlemsliste:
+ * - hver childs oppslag har en nestet `guardians`-liste — de id-ene er foresatte
+ * - gruppen har en egen `admins`-liste (objekter eller id-er)
+ * - member-oppføringer med role/memberType ADMIN kastes også
+ * Returnerer kun {id, name} for faktiske spillere.
  */
-export function filterPlayers(members: Array<Record<string, unknown>>): SpondGroupMember[] {
+export function filterPlayers(
+  members: Array<Record<string, unknown>>,
+  groupAdmins: Array<Record<string, unknown> | string> = []
+): SpondGroupMember[] {
   const guardianIds = new Set(
     members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((g) => String(g.id)))
   );
+  const adminIds = new Set(
+    groupAdmins.map((a) => String(typeof a === 'string' ? a : a.id))
+  );
+  const isAdminRole = (m: Record<string, unknown>) => {
+    const role = String(m.role ?? m.memberType ?? '').toUpperCase();
+    return role.includes('ADMIN');
+  };
   return members
-    .filter((m) => !guardianIds.has(String(m.id)))
+    .filter((m) => !guardianIds.has(String(m.id)) && !adminIds.has(String(m.id)) && !isAdminRole(m))
     .map((m) => ({
       id: String(m.id),
       name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || String(m.id)
@@ -108,7 +120,10 @@ export class DirectSpondAdapter implements SpondAdapter {
     return (raw ?? []).map((g) => ({
       id: String(g.id),
       name: String(g.name ?? ''),
-      members: filterPlayers((g.members as Array<Record<string, unknown>> | undefined) ?? [])
+      members: filterPlayers(
+        (g.members as Array<Record<string, unknown>> | undefined) ?? [],
+        (g.admins as Array<Record<string, unknown> | string> | undefined) ?? []
+      )
     }));
   }
 
