@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { isLoggedIn, login, logout, onAuthChange } from './lib/auth';
 import Players from './features/Players';
 import Plans from './features/Plans';
+import Sessions from './features/Sessions';
 
-type View = 'players' | 'plans';
+type View = 'players' | 'plans' | 'sessions';
 
 export default function App() {
   const [view, setView] = useState<View>('players');
@@ -79,7 +80,8 @@ export default function App() {
         {(
           [
             ['players', 'Spillere'],
-            ['plans', 'Øktplaner']
+            ['plans', 'Øktplaner'],
+            ['sessions', 'Økter']
           ] as Array<[View, string]>
         ).map(([v, label]) => (
           <button
@@ -93,7 +95,7 @@ export default function App() {
           </button>
         ))}
       </nav>
-      {view === 'players' ? <Players /> : <Plans />}
+      {view === 'players' ? <Players /> : view === 'plans' ? <Plans /> : <Sessions />}
     </main>
   );
 }
