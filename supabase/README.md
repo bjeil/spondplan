@@ -1,14 +1,18 @@
 # Supabase-oppsett for Spondplan
 
-## Miljøer (besluttet)
-| Miljø | Supabase-prosjekt | Skjema | Bruk |
-|-------|-------------------|--------|------|
-| Prod | `spondplan` | `public` | Ekte data — kun etter sandbox-testing |
-| Sandbox | `sandbox` | `spondplan` | All testing/utvikling (tabellene ligger som `spondplan.players` osv.) |
+## Miljø (besluttet — issue #11)
+Det finnes **ett** miljø: Supabase-prosjektet **`sandbox`** med skjema **`spondplan`**.
+Tabellene ligger som `spondplan.players`, `spondplan.topics`, osv. (aldri `public`).
+Det gamle prosjektet `spondplan` er slettet.
 
-**Regel:** sandbox-prosjektet bruker alltid skjemaet `spondplan`, aldri `public`.
-Bytt miljø i appen ved å endre `SUPABASE_URL`/`SUPABASE_ANON_KEY` i `src/lib/supabase.ts`
-(inntil issue #15 innfører env-variabler per miljø). Edge Function deployes separat i hvert prosjekt.
+### Oppsett (én gang)
+1. SQL Editor i prosjektet `sandbox`: kjør hele `supabase/schema.sql`
+   (den oppretter `create schema if not exists spondplan; set search_path = spondplan;` selv).
+   Sjekk: `select * from spondplan.players limit 1;` fungerer; `set role anon; select count(*) from spondplan.players;` gir 0 (RLS).
+2. Auth → Users: opprett `spl@spondplan.app` med passord.
+3. Edge Functions: deploy `spond`, sett secrets `SPOND_USERNAME`/`SPOND_PASSWORD`, JWT verification OFF.
+4. Project Settings → API: sett `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` i `.env` (gitignored,
+   se `.env.example`). Fallback-konstantene i `src/lib/supabase.ts` skal også peke på `sandbox`-prosjektet.
 
 ## Fase 0 – hard gate (må gjøres før videre utvikling)
 
