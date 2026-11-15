@@ -9,11 +9,11 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  * fallback-konstantene under skal settes til sandbox-prosjektets verdier.
  */
 
-// NB: placeholder — erstatt med sandbox-prosjektets faktiske verdier (eller bruk .env).
+// Fallback = prosjekt "sandbox" (issue #11). Kan overstyres med .env (VITE_SUPABASE_*).
 const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ?? 'https://SANDBOX_PROJECT_REF.supabase.co';
+  import.meta.env.VITE_SUPABASE_URL ?? 'https://afhwprvvkmsdqhlhppkj.supabase.co';
 const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_SANDBOX_ANON_KEY';
+  import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_FSiz0YPwRVRQdqhQkfrsMw_ET6lO6u1';
 
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
