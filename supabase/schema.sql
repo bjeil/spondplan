@@ -9,6 +9,12 @@
 create schema if not exists spondplan;
 set search_path = spondplan;
 
+-- PostgREST (anon/authenticated) må ha USAGE på skjemaet og rettigheter på tabellene,
+-- ellers får man "permission denied for schema spondplan". RLS begrenser fortsatt til egne rader.
+grant usage on schema spondplan to anon, authenticated;
+grant select, insert, update, delete on all tables in schema spondplan to anon, authenticated;
+alter default privileges in schema spondplan grant select, insert, update, delete on tables to anon, authenticated;
+
 -- 1. Spiller-database (varig, brukerstyrt). Nivå 1–5 eies av appen,
 --    navn/Spond-id synkroniseres mot Spond-gruppens medlemmer.
 create table if not exists  players (
