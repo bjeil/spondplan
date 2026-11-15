@@ -111,6 +111,32 @@ serve(async (req: Request) => {
       return json({ ok: true, groups: Array.isArray(groups) ? groups.length : 0 });
     }
 
+    // Midlertidig debug (issue #13): returner struktur på members — kun id, navn og
+    // rolle-aktige felter. Aldri e-post/telefon/etc.
+    if (action === 'debugMembers') {
+      const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
+      const out = (groups ?? [])
+        .filter((g) => !groupId || String(g.id) === groupId)
+        .map((g) => ({
+          groupId: String(g.id),
+          groupName: String(g.name ?? ''),
+          groupKeys: Object.keys(g).sort(),
+          adminsRaw: g.admins ?? null,
+          members: ((g.members as Array<Record<string, unknown>> | undefined) ?? []).map((m) => ({
+            id: String(m.id),
+            name: [m.firstName, m.lastName].filter(Boolean).join(' '),
+            keys: Object.keys(m).sort(),
+            role: m.role ?? null,
+            memberType: m.memberType ?? null,
+            isAdmin: m.isAdmin ?? null,
+            admin: m.admin ?? null,
+            adminRoles: m.adminRoles ?? null,
+            hasGuardians: Array.isArray(m.guardians) && m.guardians.length > 0
+          }))
+        }));
+      return json({ debug: out });
+    }
+
     if (action === 'members') {
       const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
       const mapped = (groups ?? []).map((g) => {
