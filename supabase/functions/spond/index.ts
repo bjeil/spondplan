@@ -111,25 +111,60 @@ serve(async (req: Request) => {
       return json({ ok: true, groups: Array.isArray(groups) ? groups.length : 0 });
     }
 
+    // Midlertidig debug (issue #13): returner struktur på members — kun id, navn og
+    // rolle-aktige felter. Aldri e-post/telefon/etc.
+    if (action === 'debugMembers') {
+      const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
+      const out = (groups ?? [])
+        .filter((g) => !groupId || String(g.id) === groupId)
+        .map((g) => ({
+          groupId: String(g.id),
+          groupName: String(g.name ?? ''),
+          groupKeys: Object.keys(g).sort(),
+          adminsRaw: g.admins ?? null,
+          members: ((g.members as Array<Record<string, unknown>> | undefined) ?? []).map((m) => ({
+            id: String(m.id),
+            name: [m.firstName, m.lastName].filter(Boolean).join(' '),
+            keys: Object.keys(m).sort(),
+            role: m.role ?? null,
+            memberType: m.memberType ?? null,
+            isAdmin: m.isAdmin ?? null,
+            admin: m.admin ?? null,
+            adminRoles: m.adminRoles ?? null,
+            hasGuardians: Array.isArray(m.guardians) && m.guardians.length > 0
+          }))
+        }));
+      return json({ debug: out });
+    }
+
     if (action === 'members') {
       const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
       const mapped = (groups ?? []).map((g) => {
         const members = (g.members as Array<Record<string, unknown>> | undefined) ?? [];
-        // Filtrer bort foresatte (nestede guardians-lister) og administratorer (egen admins-liste / admin-role).
+        // Filtrer bort foresatte (nestede guardians-lister) og administratorer.
+        const personId = (p: Record<string, unknown> | string): string => {
+          if (typeof p === 'string') return p;
+          const profile = p.profile as Record<string, unknown> | undefined;
+          return String(p.id ?? p.userId ?? profile?.id ?? '');
+        };
         const guardianIds = new Set(
-          members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((x) => String(x.id)))
+          members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((x) => personId(x)))
         );
-        const admins = (g.admins as Array<Record<string, unknown> | string> | undefined) ?? [];
-        const adminIds = new Set(admins.map((a) => String(typeof a === 'string' ? a : a.id)));
-        const isAdminRole = (m: Record<string, unknown>) => String(m.role ?? m.memberType ?? '').toUpperCase().includes('ADMIN');
+        const adminLists = [g.admins, g.groupAdmins, g.administrators].filter(Array.isArray) as Array<Array<Record<string, unknown> | string>>;
+        const adminIds = new Set(adminLists.flat().map((a) => personId(a)));
+        const isAdmin = (m: Record<string, unknown>) =>
+          String(m.role ?? m.memberType ?? '').toUpperCase().includes('ADMIN') || m.isAdmin === true || m.admin === true;
         return {
           id: String(g.id),
           name: String(g.name ?? ''),
           members: members
-            .filter((m) => !guardianIds.has(String(m.id)) && !adminIds.has(String(m.id)) && !isAdminRole(m))
+            .filter((m) => {
+              const id = personId(m);
+              return id !== '' && !guardianIds.has(id) && !adminIds.has(id) && !isAdmin(m);
+            })
             .map((m) => ({
-              id: String(m.id),
-              name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || String(m.id)
+              id: personId(m),
+              name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || personId(m)
             }))
         };
       });

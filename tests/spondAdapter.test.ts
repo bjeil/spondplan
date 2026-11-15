@@ -65,7 +65,7 @@ describe('DirectSpondAdapter (Fase 0)', () => {
           {
             id: 'g1',
             name: 'Gutt 2013',
-            admins: [{ id: 'a1' }],
+            admins: [{ userId: 'a1' }],
             members: [
               { id: 'm1', firstName: 'Ola', lastName: 'Nordmann', guardians: [{ id: 'g-a', firstName: 'Mor', lastName: 'Nordmann' }] },
               { id: 'm2', firstName: 'Kari', lastName: 'Hansen', guardians: [{ id: 'g-b', firstName: 'Far', lastName: 'Hansen' }] },
@@ -97,8 +97,20 @@ describe('DirectSpondAdapter (Fase 0)', () => {
       { id: 'a1', firstName: 'Trener', lastName: 'Treneren' },
       { id: 'a2', firstName: 'Hjelpetrener', role: 'ADMIN' }
     ];
-    const result = filterPlayers(members, [{ id: 'a1' }]);
+    const result = filterPlayers(members, { admins: [{ id: 'a1' }] });
     expect(result).toEqual([{ id: 'm1', name: 'Ola Nordmann' }]);
+  });
+
+  it('filterPlayers håndterer admins på userId/profile.id og groupAdmins/administrators', () => {
+    const members = [
+      { id: 'm1', firstName: 'Ola' },
+      { userId: 'a1', firstName: 'Trener' },
+      { profile: { id: 'a2' }, firstName: 'Hjelpe' },
+      { id: 'a3', firstName: 'Annen', isAdmin: true }
+    ];
+    const group = { groupAdmins: [{ userId: 'a1' }], administrators: [{ profile: { id: 'a2' } }] };
+    const result = filterPlayers(members, group);
+    expect(result).toEqual([{ id: 'm1', name: 'Ola' }]);
   });
 
   it('gjenbruker token ved flere kall', async () => {

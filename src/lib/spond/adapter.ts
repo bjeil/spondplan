@@ -36,32 +36,44 @@ function fullName(m: SpondMemberRaw): string {
   return [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || m.id;
 }
 
+/** Hent en persons id fra et Spond-objekt, uavhengig av om den ligger på id/userId/profile.id. */
+function personId(p: Record<string, unknown> | string): string {
+  if (typeof p === 'string') return p;
+  const profile = p.profile as Record<string, unknown> | undefined;
+  return String(p.id ?? p.userId ?? profile?.id ?? '');
+}
+
 /**
  * Filtrer bort foresatte (guardians) og administratorer fra en gruppes medlemsliste:
  * - hver childs oppslag har en nestet `guardians`-liste — de id-ene er foresatte
- * - gruppen har en egen `admins`-liste (objekter eller id-er)
- * - member-oppføringer med role/memberType ADMIN kastes også
+ * - gruppens admin-liste kan hete `admins`/`groupAdmins`/`administrators`, med id på
+ *   id/userId/profile.id
+ * - member-oppføringer med role/memberType/isAdmin/admin som tilsier admin kastes også
  * Returnerer kun {id, name} for faktiske spillere.
  */
 export function filterPlayers(
   members: Array<Record<string, unknown>>,
-  groupAdmins: Array<Record<string, unknown> | string> = []
+  group: Record<string, unknown> = {}
 ): SpondGroupMember[] {
   const guardianIds = new Set(
-    members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((g) => String(g.id)))
+    members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((g) => personId(g)))
   );
-  const adminIds = new Set(
-    groupAdmins.map((a) => String(typeof a === 'string' ? a : a.id))
-  );
-  const isAdminRole = (m: Record<string, unknown>) => {
+  const adminLists = [group.admins, group.groupAdmins, group.administrators].filter(Array.isArray) as Array<
+    Array<Record<string, unknown> | string>
+  >;
+  const adminIds = new Set(adminLists.flat().map((a) => personId(a)));
+  const isAdmin = (m: Record<string, unknown>) => {
     const role = String(m.role ?? m.memberType ?? '').toUpperCase();
-    return role.includes('ADMIN');
+    return role.includes('ADMIN') || m.isAdmin === true || m.admin === true;
   };
   return members
-    .filter((m) => !guardianIds.has(String(m.id)) && !adminIds.has(String(m.id)) && !isAdminRole(m))
+    .filter((m) => {
+      const id = personId(m);
+      return id !== '' && !guardianIds.has(id) && !adminIds.has(id) && !isAdmin(m);
+    })
     .map((m) => ({
-      id: String(m.id),
-      name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || String(m.id)
+      id: personId(m),
+      name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || personId(m)
     }));
 }
 
@@ -120,10 +132,7 @@ export class DirectSpondAdapter implements SpondAdapter {
     return (raw ?? []).map((g) => ({
       id: String(g.id),
       name: String(g.name ?? ''),
-      members: filterPlayers(
-        (g.members as Array<Record<string, unknown>> | undefined) ?? [],
-        (g.admins as Array<Record<string, unknown> | string> | undefined) ?? []
-      )
+      members: filterPlayers((g.members as Array<Record<string, unknown>> | undefined) ?? [], g)
     }));
   }
 
