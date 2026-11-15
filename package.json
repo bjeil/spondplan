@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:sandbox": "tsc -b && vite build --mode sandbox",
     "preview": "vite preview",
     "test": "vitest run",
     "icons": "node scripts/gen-icons.mjs"

@@ -7,8 +7,19 @@
 | Sandbox | `sandbox` | `spondplan` | All testing/utvikling (tabellene ligger som `spondplan.players` osv.) |
 
 **Regel:** sandbox-prosjektet bruker alltid skjemaet `spondplan`, aldri `public`.
-Bytt miljø i appen ved å endre `SUPABASE_URL`/`SUPABASE_ANON_KEY` i `src/lib/supabase.ts`
-(inntil issue #15 innfører env-variabler per miljø). Edge Function deployes separat i hvert prosjekt.
+Edge Function deployes separat i hvert prosjekt.
+
+### Oppskrift for sandbox (issue #11)
+1. Opprett nytt Supabase-prosjekt kalt **`sandbox`**.
+2. SQL Editor i sandbox: kjør först `create schema if not exists spondplan; set search_path = spondplan;`
+   og deretter hele `supabase/schema.sql` (endre første `set search_path`-linje til `spondplan`).
+   Tabellene blir da `spondplan.players` osv., med RLS.
+3. Auth → Users: opprett `spl@spondplan.app` med passord.
+4. Edge Functions: deploy `spond` (samme kode), sett secrets `SPOND_USERNAME`/`SPOND_PASSWORD`,
+   JWT verification OFF, CORS-headere i koden (allerede på plass).
+5. Project Settings → API: kopier sandbox URL + publishable key til `.env.sandbox`
+   (se `.env.sandbox.example`). Bygg lokalt mot sandbox med `npm run build:sandbox` + `npm run dev -- --mode sandbox`,
+   eller bytt `VITE_*` i `.env` manuelt. Prod-bygg bruker fallback-verdiene i `src/lib/supabase.ts`.
 
 ## Fase 0 – hard gate (må gjøres før videre utvikling)
 
