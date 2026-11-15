@@ -1,5 +1,15 @@
 # Supabase-oppsett for Spondplan
 
+## Miljøer (besluttet)
+| Miljø | Supabase-prosjekt | Skjema | Bruk |
+|-------|-------------------|--------|------|
+| Prod | `spondplan` | `public` | Ekte data — kun etter sandbox-testing |
+| Sandbox | `sandbox` | `spondplan` | All testing/utvikling (tabellene ligger som `spondplan.players` osv.) |
+
+**Regel:** sandbox-prosjektet bruker alltid skjemaet `spondplan`, aldri `public`.
+Bytt miljø i appen ved å endre `SUPABASE_URL`/`SUPABASE_ANON_KEY` i `src/lib/supabase.ts`
+(inntil issue #15 innfører env-variabler per miljø). Edge Function deployes separat i hvert prosjekt.
+
 ## Fase 0 – hard gate (må gjøres før videre utvikling)
 
 1. Opprett et Supabase-prosjekt.
