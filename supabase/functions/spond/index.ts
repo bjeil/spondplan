@@ -141,21 +141,30 @@ serve(async (req: Request) => {
       const groups = await spondFetch<Array<Record<string, unknown>>>('/groups/', token);
       const mapped = (groups ?? []).map((g) => {
         const members = (g.members as Array<Record<string, unknown>> | undefined) ?? [];
-        // Filtrer bort foresatte (nestede guardians-lister) og administratorer (egen admins-liste / admin-role).
+        // Filtrer bort foresatte (nestede guardians-lister) og administratorer.
+        const personId = (p: Record<string, unknown> | string): string => {
+          if (typeof p === 'string') return p;
+          const profile = p.profile as Record<string, unknown> | undefined;
+          return String(p.id ?? p.userId ?? profile?.id ?? '');
+        };
         const guardianIds = new Set(
-          members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((x) => String(x.id)))
+          members.flatMap((m) => ((m.guardians as Array<Record<string, unknown>> | undefined) ?? []).map((x) => personId(x)))
         );
-        const admins = (g.admins as Array<Record<string, unknown> | string> | undefined) ?? [];
-        const adminIds = new Set(admins.map((a) => String(typeof a === 'string' ? a : a.id)));
-        const isAdminRole = (m: Record<string, unknown>) => String(m.role ?? m.memberType ?? '').toUpperCase().includes('ADMIN');
+        const adminLists = [g.admins, g.groupAdmins, g.administrators].filter(Array.isArray) as Array<Array<Record<string, unknown> | string>>;
+        const adminIds = new Set(adminLists.flat().map((a) => personId(a)));
+        const isAdmin = (m: Record<string, unknown>) =>
+          String(m.role ?? m.memberType ?? '').toUpperCase().includes('ADMIN') || m.isAdmin === true || m.admin === true;
         return {
           id: String(g.id),
           name: String(g.name ?? ''),
           members: members
-            .filter((m) => !guardianIds.has(String(m.id)) && !adminIds.has(String(m.id)) && !isAdminRole(m))
+            .filter((m) => {
+              const id = personId(m);
+              return id !== '' && !guardianIds.has(id) && !adminIds.has(id) && !isAdmin(m);
+            })
             .map((m) => ({
-              id: String(m.id),
-              name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || String(m.id)
+              id: personId(m),
+              name: [m.firstName, m.lastName].filter(Boolean).join(' ').trim() || personId(m)
             }))
         };
       });
