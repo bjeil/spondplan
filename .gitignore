@@ -5,5 +5,4 @@ dist-ssr
 .vite
 tsconfig.tsbuildinfo
 .env
-.env.sandbox
 .env.local

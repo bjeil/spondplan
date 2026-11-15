@@ -1,25 +1,18 @@
 # Supabase-oppsett for Spondplan
 
-## Miljøer (besluttet)
-| Miljø | Supabase-prosjekt | Skjema | Bruk |
-|-------|-------------------|--------|------|
-| Prod | `spondplan` | `public` | Ekte data — kun etter sandbox-testing |
-| Sandbox | `sandbox` | `spondplan` | All testing/utvikling (tabellene ligger som `spondplan.players` osv.) |
+## Miljø (besluttet — issue #11)
+Det finnes **ett** miljø: Supabase-prosjektet **`sandbox`** med skjema **`spondplan`**.
+Tabellene ligger som `spondplan.players`, `spondplan.topics`, osv. (aldri `public`).
+Det gamle prosjektet `spondplan` er slettet.
 
-**Regel:** sandbox-prosjektet bruker alltid skjemaet `spondplan`, aldri `public`.
-Edge Function deployes separat i hvert prosjekt.
-
-### Oppskrift for sandbox (issue #11)
-1. Opprett nytt Supabase-prosjekt kalt **`sandbox`**.
-2. SQL Editor i sandbox: kjør först `create schema if not exists spondplan; set search_path = spondplan;`
-   og deretter hele `supabase/schema.sql` (endre første `set search_path`-linje til `spondplan`).
-   Tabellene blir da `spondplan.players` osv., med RLS.
-3. Auth → Users: opprett `spl@spondplan.app` med passord.
-4. Edge Functions: deploy `spond` (samme kode), sett secrets `SPOND_USERNAME`/`SPOND_PASSWORD`,
-   JWT verification OFF, CORS-headere i koden (allerede på plass).
-5. Project Settings → API: kopier sandbox URL + publishable key til `.env.sandbox`
-   (se `.env.sandbox.example`). Bygg lokalt mot sandbox med `npm run build:sandbox` + `npm run dev -- --mode sandbox`,
-   eller bytt `VITE_*` i `.env` manuelt. Prod-bygg bruker fallback-verdiene i `src/lib/supabase.ts`.
+### Oppsett (én gang)
+1. SQL Editor i prosjektet `sandbox`: kjør hele `supabase/schema.sql`
+   (den oppretter `create schema if not exists spondplan; set search_path = spondplan;` selv).
+   Sjekk: `select * from spondplan.players limit 1;` fungerer; `set role anon; select count(*) from spondplan.players;` gir 0 (RLS).
+2. Auth → Users: opprett `spl@spondplan.app` med passord.
+3. Edge Functions: deploy `spond`, sett secrets `SPOND_USERNAME`/`SPOND_PASSWORD`, JWT verification OFF.
+4. Project Settings → API: sett `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` i `.env` (gitignored,
+   se `.env.example`). Fallback-konstantene i `src/lib/supabase.ts` skal også peke på `sandbox`-prosjektet.
 
 ## Fase 0 – hard gate (må gjøres før videre utvikling)
 

@@ -4,14 +4,15 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  * Supabase-klient. Anon-nøkkelen er offentlig BY DESIGN — sikkerheten ligger i
  * Row Level Security (RLS), som kun slipper inn autentiserte brukere med egne rader.
  *
- * Miljø (issue #11): VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY fra .env(.sandbox).
- * Fallback = prod (prosjekt "spondplan"). Sandbox = prosjekt "sandbox".
+ * Eneste miljø (issue #11): Supabase-prosjekt "sandbox" (skjema "spondplan").
+ * URL/nøkkel kommer fra VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (.env, gitignored);
+ * fallback-konstantene under skal settes til sandbox-prosjektets verdier.
  */
 
 const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ?? 'https://trfenxumizhgtrgwnill.supabase.co';
+  import.meta.env.VITE_SUPABASE_URL ?? 'https://<sandbox-project-ref>.supabase.co';
 const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_Y3iyAkeX3HHea8M0VAyRrw_AaP5x5qi';
+  import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_<sandbox-anon-key>';
 
 export const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

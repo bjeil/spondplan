@@ -3,13 +3,11 @@
 -- Kjør dette i Supabase Dashboard → SQL Editor (én gang per miljø)
 -- Samme mønster som Belast: hver bruker ser kun egne rader via RLS.
 --
--- MILJØ (se issue #11):
---   Prod:    prosjekt "spondplan",  skjema public     -> behold linjen under
---   Sandbox: prosjekt "sandbox",    skjema spondplan  -> erstatt med:
---              create schema if not exists spondplan;
---              set search_path = spondplan;
+-- ENESTE MILJØ (se issue #11): Supabase-prosjekt "sandbox", skjema "spondplan".
+-- Det gamle prosjektet "spondplan" (skjema public) er slettet.
 -- ============================================================================
-set search_path = public;
+create schema if not exists spondplan;
+set search_path = spondplan;
 
 -- 1. Spiller-database (varig, brukerstyrt). Nivå 1–5 eies av appen,
 --    navn/Spond-id synkroniseres mot Spond-gruppens medlemmer.
